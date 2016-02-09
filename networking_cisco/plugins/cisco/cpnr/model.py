@@ -334,8 +334,15 @@ class Policy:
         for option in extra_options.items():
             options.append(option)
 
-        if options:
-            data = {'optionList': {'OptionItem': options}}
+        opt_list = []
+        for name, val in options:
+            opt = dhcpopts.format_for_pnr(name, val)
+            if opt:
+                opt_list.append(opt)
+
+        if opt_list:
+            LOG.debug(_('optlist = %s'), opt_list)
+            data = {'optionList': {'OptionItem': opt_list}}
         else:
             data = {'optionList': {'list': []}}
         return cls(data)
@@ -345,9 +352,12 @@ class Policy:
         opt_list = []
         if hasattr(port, 'extra_dhcp_opts'):
             for opt in port.extra_dhcp_opts:
-                opt_list.append(opt)
+                opt = dhcpopts.format_for_pnr(opt.opt_name, opt.opt_value)
+                if opt:
+                    opt_list.append(opt)
 
         if opt_list:
+            LOG.debug(_('optlist = %s'), opt_list)
             data = {'optionList': {'OptionItem': opt_list}}
         else:
             data = {'optionList': {'list': []}}
