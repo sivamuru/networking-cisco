@@ -83,6 +83,7 @@ class DnsRelayAgent(object):
         self.request_info_by_msgid = {}
         self.ext_sock = None
         self.ext_addr = ""
+        self.ns_lock = eventlet.semaphore.Semaphore()
         self.debug_stats = debug_stats.DebugStats('dns')
 
     def serve(self):
@@ -157,7 +158,7 @@ class DnsRelayAgent(object):
 
         # Open a socket in the DNS network namespace
         try:
-            with netns.Namespace(namespace):
+            with self.ns_lock as lock, netns.Namespace(namespace):
                 int_sock, int_addr, int_port = self._open_dns_int_socket()
         except Exception:
             LOG.exception(_('Failed to open dns server socket in %s'),
@@ -405,13 +406,13 @@ def main():
     except:
         LOG.error(_('Failed to increase ulimit for DNS relay'))
     if os.getuid() != 0:
-        config.setup_logging(cfg.CONF)
+        config.setup_logging()
         LOG.error(_('Must run dns relay as root'))
         return
     eventlet.monkey_patch()
     cfg.CONF.register_opts(OPTS, 'cisco_pnr')
     cfg.CONF(project='neutron')
-    config.setup_logging(cfg.CONF)
+    config.setup_logging()
     relay = DnsRelayAgent()
     relay.serve()
 
